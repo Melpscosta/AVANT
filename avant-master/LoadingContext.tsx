@@ -1,7 +1,7 @@
 // context/LoadingContext.tsx
 import { router } from 'expo-router';
 import React, { createContext, useContext, useState } from 'react';
-import LoadingScreen from './components/ui/LoadingScreen'; // Ajuste o caminho se necessário
+import LoadingScreen from './app/LoadingScreen'; // Ajuste o caminho se necessário
 
 type LoadingContextType = {
   showLoading: (path: string) => void;
