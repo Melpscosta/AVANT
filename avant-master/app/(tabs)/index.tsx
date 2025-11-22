@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -16,7 +17,7 @@ import {
   View
 } from 'react-native';
 
-// Importa os contextos e API
+// Contexto e API
 import { useUser } from '../../src/context/UserContext';
 import api from '../../src/services/api';
 
@@ -37,7 +38,6 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      // Chamada para a sua rota LOCAL
       const response = await api.post('/api/v1/autenticacao/login', {
         email: email,
         senha: senha
@@ -45,26 +45,18 @@ export default function LoginScreen() {
 
       const dados = response.data;
 
-      // Log para vermos o que a API retornou (ajuda a debugar)
-      console.log("Login Resposta:", dados);
-
-      // Salvamos no Contexto Global para usar na Trilha depois
-      // Ajuste os campos abaixo conforme o JSON exato que sua API retorna
       loginUser({
         nome: dados.nome || 'Funcionário',
         email: email,
-        // O cargo é crucial para a IA. Se a API não retornar 'cargo', usamos um padrão.
         cargo: dados.cargo || dados.funcao || 'Analista de Sistemas'
       });
 
-      // Navega para a seleção de metas
       router.replace('/selection');
 
-    } catch (error: any) {
-      console.error("Erro no login:", error);
+    } catch {
       Alert.alert(
         'Erro de Acesso',
-        'Não foi possível entrar. Verifique suas credenciais ou se o servidor está rodando.'
+        'Credenciais inválidas ou servidor offline.'
       );
     } finally {
       setLoading(false);
@@ -73,50 +65,53 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={['#050011', '#180b26', '#2e1065']}
+      colors={['#0A0017', '#120425', '#3B0B65']}
       style={styles.container}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scroll}>
 
-          {/* Logo Area */}
-          <View style={styles.logoContainer}>
-            <View style={styles.glowEffect} />
-            <Image 
-              source={require('../../assets/images/logo.png')}
+          {/* LOGO */}
+          <View style={styles.logoArea}>
+            <Image
+              source={require('../../assets/logos/avant_logo.png')}
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.subtitle}>Learning Platform</Text>
           </View>
 
-          {/* Form Area */}
-          <View style={styles.formContainer}>
-            <Text style={styles.label}>Acesse sua conta</Text>
+          {/* TEXTO DO Figma */}
+          <Text style={styles.accessText}>
+            Digite seu e-mail corporativo e senha{'\n'}
+            para prepararmos sua jornada.
+          </Text>
 
-            {/* Input Email */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color="#A1A1AA" style={styles.inputIcon} />
+          {/* INPUTS */}
+          <View style={{ width: '100%', marginTop: 40 }}>
+
+            {/* EMAIL */}
+            <BlurView intensity={50} tint="dark" style={styles.glassInput}>
+              <Ionicons name="mail-outline" size={20} color="#ADADBC" />
               <TextInput
-                placeholder="Seu e-mail corporativo"
-                placeholderTextColor="#52525B"
+                placeholder="E-mail corporativo"
+                placeholderTextColor="rgba(255,255,255,0.45)"
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
-            </View>
+            </BlurView>
 
-            {/* Input Senha */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color="#A1A1AA" style={styles.inputIcon} />
+            {/* SENHA */}
+            <BlurView intensity={50} tint="dark" style={styles.glassInput}>
+              <Ionicons name="lock-closed-outline" size={20} color="#ADADBC" />
               <TextInput
-                placeholder="Sua senha"
-                placeholderTextColor="#52525B"
+                placeholder="Senha"
+                placeholderTextColor="rgba(255,255,255,0.45)"
                 style={styles.input}
                 value={senha}
                 onChangeText={setSenha}
@@ -124,46 +119,41 @@ export default function LoginScreen() {
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color="#A1A1AA"
+                  color="#ADADBC"
                 />
               </TouchableOpacity>
-            </View>
+            </BlurView>
 
-            <TouchableOpacity style={styles.forgotPass}>
-              <Text style={styles.forgotPassText}>Esqueceu a senha?</Text>
-            </TouchableOpacity>
+          </View>
 
-            {/* Botão Entrar */}
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={handleLogin}
-              activeOpacity={0.8}
-              disabled={loading}
+          {/* BOTÃO SETA */}
+          <TouchableOpacity
+            style={styles.arrowButton}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <LinearGradient
+              colors={['#ffffffaa', '#ffffffdd']}
+              style={styles.arrowButtonGradient}
             >
-              <LinearGradient
-                colors={['#7C3AED', '#6D28D9']}
-                style={styles.gradientBtn}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.loginBtnText}>ENTRAR</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+              {loading ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Ionicons name="arrow-forward" size={22} color="#000" />
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
 
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Não tem acesso?</Text>
-            <TouchableOpacity>
-              <Text style={styles.footerLink}>Fale com o RH</Text>
-            </TouchableOpacity>
-          </View>
+          {/* AVANCE CONOSCO */}
+          <TouchableOpacity
+            style={{ marginTop: 50, alignSelf: 'center' }}
+            onPress={() => router.push('/about')}
+          >
+            <Text style={styles.advanceText}>AVANCE</Text>
+            <Text style={styles.advanceText}>CONOSCO</Text>
+          </TouchableOpacity>
 
         </ScrollView>
       </KeyboardAvoidingView>
@@ -173,36 +163,64 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-
-  logoContainer: { alignItems: 'center', marginBottom: 50, marginTop: 40 },
-  logo: { width: 220, height: 60, tintColor: '#FFF' },
-  subtitle: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontFamily: 'Lexend-Regular', letterSpacing: 4, marginTop: 8, textTransform: 'uppercase' },
-  glowEffect: { position: 'absolute', width: 150, height: 150, backgroundColor: '#7C3AED', borderRadius: 75, opacity: 0.15, filter: 'blur(40px)', top: -20 },
-
-  formContainer: { width: '100%' },
-  label: { color: '#FFF', fontSize: 20, fontFamily: 'Lexend-Bold', marginBottom: 24, textAlign: 'center' },
-
-  inputWrapper: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-    marginBottom: 16, paddingHorizontal: 16, height: 56
+  scroll: {
+    padding: 20,
+    paddingTop: 100,
+    paddingBottom: 100,
+    alignItems: 'center',
   },
-  inputIcon: { marginRight: 12 },
-  input: { flex: 1, color: '#FFF', fontFamily: 'Lexend-Regular', fontSize: 16, height: '100%' },
 
-  forgotPass: { alignSelf: 'flex-end', marginBottom: 32 },
-  forgotPassText: { color: '#A1A1AA', fontSize: 14, fontFamily: 'Lexend-Regular' },
+  logoArea: { marginBottom: 60 },
+  logo: { width: 170, height: 60 },
 
-  loginButton: {
-    width: '100%', height: 56, borderRadius: 14, overflow: 'hidden',
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5
+  accessText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontFamily: 'Lexend-Light',
+    textAlign: 'center',
+    lineHeight: 22,
+    opacity: 0.95
   },
-  gradientBtn: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loginBtnText: { color: '#FFF', fontSize: 16, fontFamily: 'Lexend-Bold', letterSpacing: 1 },
 
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 40, gap: 6 },
-  footerText: { color: '#71717A', fontFamily: 'Lexend-Regular' },
-  footerLink: { color: '#A855F7', fontFamily: 'Lexend-Bold' }
+  glassInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    height: 55,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    overflow: 'hidden',
+  },
+
+  input: {
+    flex: 1,
+    marginLeft: 12,
+    color: '#FFF',
+    fontFamily: 'Lexend-Light',
+    fontSize: 16,
+  },
+
+  arrowButton: {
+    marginTop: 10,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    overflow: 'hidden',
+  },
+  arrowButtonGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  advanceText: {
+    color: '#FFF',
+    fontSize: 12,
+    textAlign: 'center',
+    fontFamily: 'Lexend-Light',
+    letterSpacing: 2,
+  },
 });
