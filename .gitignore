@@ -1,0 +1,14 @@
+# Dependências
+node_modules/
+
+# Build / cache
+.expo/
+dist/
+build/
+
+# Expo router
+.expo/
+
+# Sistema
+.DS_Store
+Thumbs.db
