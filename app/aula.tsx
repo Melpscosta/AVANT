@@ -12,8 +12,6 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// CONTEXTO
 import { useTrilha } from '../src/context/TrilhaContext';
 
 const { width } = Dimensions.get('window');
@@ -26,10 +24,10 @@ const classList = [
 ];
 
 export default function Aula() {
-  const { capitulo, idModulo } = useLocalSearchParams();
-  const insets = useSafeAreaInsets();
 
+  const { capitulo, idModulo } = useLocalSearchParams();
   const { concluirModulo } = useTrilha();
+  const insets = useSafeAreaInsets();
 
   const handleFinish = () => {
     if (idModulo) {
@@ -63,7 +61,6 @@ export default function Aula() {
       {/* CONTEÚDO */}
       <ScrollView style={styles.contentContainer} contentContainerStyle={{ paddingBottom: 120 }}>
 
-        {/* HEADER DO MÓDULO */}
         <View style={styles.headerInfo}>
           <Text style={styles.trackTitle}>{capitulo}</Text>
 
@@ -72,7 +69,6 @@ export default function Aula() {
           </Text>
         </View>
 
-        {/* AULAS */}
         <Text style={styles.sectionTitle}>Aulas do Capítulo</Text>
 
         <View style={styles.playlist}>
@@ -105,7 +101,6 @@ export default function Aula() {
         </View>
       </ScrollView>
 
-      {/* BOTÃO FINAL */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
         <TouchableOpacity activeOpacity={0.8} onPress={handleFinish}>
           <LinearGradient
@@ -122,8 +117,6 @@ export default function Aula() {
     </View>
   );
 }
-
-// ========================= STYLES =============================
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B011A' },
@@ -221,9 +214,7 @@ const styles = StyleSheet.create({
     marginRight: 14
   },
 
-  iconCircleActive: {
-    backgroundColor: '#A855F7'
-  },
+  iconCircleActive: { backgroundColor: '#A855F7' },
 
   indexNumber: {
     color: '#A1A1AA',

@@ -12,12 +12,12 @@ export default function AboutScreen() {
     >
       <ScrollView contentContainerStyle={styles.container}>
 
-        {/* BOTÃO VOLTAR PADRONIZADO */}
+        {/* BOTÃO VOLTAR */}
         <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/')}>
           <Ionicons name="arrow-back" size={26} color="#FFFFFF" />
         </TouchableOpacity>
 
-        {/* HEADER PADRÃO */}
+        {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.title}>AVANT</Text>
           <Text style={styles.subtitle}>
@@ -34,7 +34,7 @@ export default function AboutScreen() {
           </Text>
         </LinearGradient>
 
-        {/* BENEFICÍOS */}
+        {/* BENEFÍCIOS */}
         <Text style={styles.sectionTitle}>Benefícios da Plataforma</Text>
 
         {benefits.map((item, index) => (
@@ -44,14 +44,17 @@ export default function AboutScreen() {
             style={styles.benefitCard}
           >
             <Ionicons name={item.icon} size={28} color="#A855F7" />
-            <View style={{ marginLeft: 12 }}>
+
+            {/* BLOCO DE TEXTO AJUSTADO */}
+            <View style={styles.benefitTextBlock}>
               <Text style={styles.benefitTitle}>{item.title}</Text>
               <Text style={styles.benefitDesc}>{item.desc}</Text>
             </View>
+
           </LinearGradient>
         ))}
 
-        {/* SEÇÃO AVANTIA */}
+        {/* AVANTIA */}
         <Text style={styles.sectionTitle}>AVANTIA — Nossa IA</Text>
 
         <LinearGradient colors={['#ffffff15', '#ffffff08']} style={styles.card}>
@@ -150,7 +153,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255,255,255,0.85)",
     fontFamily: "Lexend-Light",
-    lineHeight: 20
+    lineHeight: 20,
+    textAlign: "justify"
   },
 
   bold: {
@@ -168,6 +172,13 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.1)"
   },
 
+  benefitTextBlock: {
+    marginLeft: 12,
+    flexShrink: 1,
+    flexWrap: "wrap",
+    maxWidth: "85%"
+  },
+
   benefitTitle: {
     fontSize: 15,
     fontFamily: "Lexend-Regular",
@@ -178,7 +189,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Lexend-Light",
     color: "rgba(255,255,255,0.75)",
-    marginTop: 3
+    marginTop: 3,
+    lineHeight: 18,
+    textAlign: "justify"
   },
 
   socialContainer: {

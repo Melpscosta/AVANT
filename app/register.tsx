@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
     ActivityIndicator,
-    Alert,
+    Animated,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -15,67 +15,110 @@ import {
     View
 } from 'react-native';
 
-import api from '../src/services/api';
+import storage from '../src/services/storage';
 
-const AUTH_API_URL =
-    Platform.OS === 'android' ? 'http://localhost:5008/' : 'http://localhost:5008/';
 
+// ======================================================
+//              MOCK: REGISTRAR GERENTE
+// ======================================================
+function mockRegistrarGerente(nome: string, email: string, senha: string) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            const users = storage.getJSON("mock_users") || [];
+
+            const exists = users.find((u: any) => u.email === email);
+            if (exists) {
+                reject({ code: 409, message: "E-mail já cadastrado." });
+                return;
+            }
+
+            const novo = {
+                id: crypto.randomUUID(),
+                nome,
+                email,
+                senha,
+                tipo: "gerente"
+            };
+
+            users.push(novo);
+            storage.setJSON("mock_users", users);
+
+            resolve(novo);
+        }, 600);
+    });
+}
+
+// ======================================================
+//               COMPONENTE DA TELA
+// ======================================================
 export default function CadastroGestorScreen() {
     const [nome, setNome] = useState('');
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [loading, setLoading] = useState(false);
 
-   const handleRegister = async () => {
-        if (!nome || !email || !senha)
-            return Alert.alert('Erro', 'Preencha todos os campos.');
+    // ---------------- TOAST ----------------
+    const toastY = useRef(new Animated.Value(-80)).current;
+    const [toastMsg, setToastMsg] = useState('');
 
-        setLoading(true);
-        try {
-            await api.post(
-                '/api/v1/Autenticacao/registrar-gerente',
-                { nome, email, senha },
-                { baseURL: AUTH_API_URL }
-            );
+    const showToast = (msg: string) => {
+        setToastMsg(msg);
 
-            Alert.alert('Sucesso', 'Gestor cadastrado!', [
-                { text: 'OK', onPress: () => router.replace('/') }
-            ]);
-        } catch (error: any) {
-            console.error("Detalhes do erro no cadastro:", error);
-            
-            let errorMessage = 'Falha no cadastro. Tente novamente.';
+        Animated.timing(toastY, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true
+        }).start(() => {
+            setTimeout(() => {
+                Animated.timing(toastY, {
+                    toValue: -80,
+                    duration: 400,
+                    useNativeDriver: true
+                }).start();
+            }, 2000);
+        });
+    };
+    // ---------------------------------------------------
 
-            if (error.response) {
-                const status = error.response.status;
+    const handleRegister = async () => {
+        if (!nome || !email || !senha) {
+            showToast("Preencha todos os campos.");
+            return;
+        }
 
-                if (status === 400) {
-                    // 400 Bad Request (Pode ser validação de email/senha ou duplicidade não tratada)
-                    // Se o backend retornar detalhes no body do 400, você pode usá-los (error.response.data)
-                    errorMessage = 'Dados inválidos. Verifique se o e-mail já está em uso ou se a senha atende aos requisitos.';
-                } else if (status === 500) {
-                    // 500 Internal Server Error (Problema no banco de dados/lógica)
-                    errorMessage = 'Erro interno do servidor. Não foi possível completar o cadastro. Por favor, avise o suporte.';
-                } else if (status === 409) {
-                    // Se o backend for corrigido para retornar 409 (Conflict) em caso de duplicidade
-                    errorMessage = 'Este e-mail já está cadastrado no sistema.';
-                }
-            } else if (error.request) {
-                // A requisição foi feita, mas não houve resposta (servidor inacessível)
-                errorMessage = 'Não foi possível conectar ao servidor. Verifique sua rede.';
-            }
+        setLoading(true);
 
-            Alert.alert('Erro de Cadastro', errorMessage);
-        } finally {
-            setLoading(false);
-        }
-    };
+        try {
+            await mockRegistrarGerente(nome, email, senha);
+
+            showToast("Cadastro efetuado com sucesso!");
+
+            setTimeout(() => {
+                router.push('/');
+            }, 1800);
+
+        } catch (err: any) {
+            let msg = "Falha no cadastro.";
+
+            if (err.code === 409) msg = "Este e-mail já está cadastrado.";
+            if (err.code === 400) msg = "Dados inválidos.";
+
+            showToast(msg);
+        }
+
+        setLoading(false);
+    };
 
     return (
         <LinearGradient
             colors={['#050011', '#180b26', '#2e1065']}
             style={styles.container}
         >
+            {/* TOAST */}
+            <Animated.View style={[styles.toast, { transform: [{ translateY: toastY }] }]}>
+                <Text style={styles.toastText}>{toastMsg}</Text>
+            </Animated.View>
+
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
@@ -164,8 +207,31 @@ export default function CadastroGestorScreen() {
     );
 }
 
+
+// ======================================================
+//                     ESTILOS
+// ======================================================
 const styles = StyleSheet.create({
+
     container: { flex: 1 },
+
+    toast: {
+        position: 'absolute',
+        top: 40,
+        alignSelf: 'center',
+        backgroundColor: '#22c55e',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 10,
+        zIndex: 9999,
+        elevation: 6
+    },
+    toastText: {
+        color: '#fff',
+        fontFamily: 'Lexend-Regular',
+        fontSize: 14,
+        textAlign: 'center'
+    },
 
     scrollContent: {
         flexGrow: 1,
@@ -187,7 +253,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 26,
         color: '#FFF',
-        fontFamily: 'LexendZetta-Regular',  // ← título grande e estiloso
+        fontFamily: 'LexendZetta-Regular',
         textTransform: 'uppercase',
         marginBottom: 6,
         letterSpacing: 1

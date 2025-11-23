@@ -9,15 +9,14 @@ import {
   Text,
   View
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
+import storage from '../src/services/storage';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LoadingScreen() {
   const progress = useRef(new Animated.Value(0)).current;
-  const params = useLocalSearchParams();
 
-  // Animação da barra (loop)
   useEffect(() => {
     const animate = () => {
       progress.setValue(0);
@@ -30,14 +29,11 @@ export default function LoadingScreen() {
     animate();
   }, []);
 
-  // Depois de 2s → vai para a trilha
   useEffect(() => {
     const timeout = setTimeout(() => {
-      router.replace({
-        pathname: '/trilha',
-        params: { titulo: params.titulo }
-      });
-    }, 2000); // mesmo tempo da animação
+      const titulo = storage.getString("mock_meta_selecionada") || "";
+      router.replace(`/trilha?titulo=${encodeURIComponent(titulo)}`);
+    }, 2000);
 
     return () => clearTimeout(timeout);
   }, []);
@@ -50,7 +46,7 @@ export default function LoadingScreen() {
   return (
     <ImageBackground
       source={require('../assets/backgrounds/animated_bg.gif')}
-      style={styles.fullScreenBackground}
+      style={styles.bg}
       resizeMode="cover"
     >
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
@@ -64,12 +60,7 @@ export default function LoadingScreen() {
           />
 
           <View style={styles.barContainer}>
-            <Animated.View
-              style={[
-                styles.barFill,
-                { width: widthInterpolated }
-              ]}
-            />
+            <Animated.View style={[styles.barFill, { width: widthInterpolated }]} />
           </View>
         </View>
 
@@ -82,17 +73,16 @@ export default function LoadingScreen() {
 }
 
 const styles = StyleSheet.create({
-  fullScreenBackground: {
-    width: width,
-    height: height,
+  bg: {
+    width,
+    height,
     position: 'absolute',
     top: 0,
     left: 0,
-    zIndex: 9999,
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -123,5 +113,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Lexend-Light',
     color: '#6B7280',
-  }
+  },
 });

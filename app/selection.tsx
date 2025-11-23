@@ -3,6 +3,7 @@ import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLoading } from '../LoadingContext';
+import storage from '../src/services/storage';
 
 const options = [
   { id: '1', title: 'Automação de processos', description: 'Torne seu trabalho mais rápido e eficiente.', icon: 'flash-outline' },
@@ -17,11 +18,9 @@ export default function Selection() {
   const insets = useSafeAreaInsets();
   const { showLoading } = useLoading();
 
-  const handleSelect = (metaSelecionada: string) => {
-    showLoading({
-      pathname: '/LoadingScreen',
-      params: { titulo: metaSelecionada }
-    } as any);
+  const handleSelect = (meta: string) => {
+    storage.setString("mock_meta_selecionada", meta);
+    showLoading('/LoadingScreen');
   };
 
   return (
@@ -34,22 +33,19 @@ export default function Selection() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* LOGO — agora usando sua imagem */}
         <Image
           source={require('../assets/logos/logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
 
-        {/* TEXTO */}
         <Text style={styles.descriptionText}>
-          Para personalizarmos sua trilha de aprendizado com a nossa I A,{' '}
+          Para personalizarmos sua trilha de aprendizado,{' '}
           <Text style={styles.highlightText}>
             selecione sua meta de carreira
           </Text>
         </Text>
 
-        {/* GRID */}
         <View style={styles.grid}>
           {options.map((item) => (
             <TouchableOpacity
@@ -76,10 +72,7 @@ export default function Selection() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF'
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
 
   scrollContent: {
     paddingHorizontal: 24,
@@ -114,7 +107,7 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    width: '48%',
+    width: '100%',
     backgroundColor: '#F3F4F6',
     padding: 18,
     borderRadius: 18,

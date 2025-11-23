@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  Animated,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -17,14 +17,83 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
-import { useFonts } from 'expo-font';
-
 import { useUser } from '../src/context/UserContext';
-import api from '../src/services/api';
 
-const AUTH_API_URL =
-  Platform.OS === 'android' ? 'http://localhost:5008/' : 'http://localhost:5008/';
+import storage from '../src/services/storage';
 
+// ======================================================
+//                 MOCK LOGIN – OFFLINE
+// ======================================================
+function mockLogin(email: string, senha: string) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const managers = storage.getJSON("mock_users") || [];
+      const workers = storage.getJSON("mock_workers") || [];
+
+      // unir tudo
+      const users = [...managers, ...workers];
+
+      const found = users.find(
+        (u: any) => u.email === email && u.senha === senha
+      );
+
+      if (!found) {
+        reject({ code: 401, message: "Credenciais inválidas" });
+        return;
+      }
+
+      const token = crypto.randomUUID();
+
+      storage.setJSON("mock_session", {
+        token,
+        id: found.id,
+        nome: found.nome,
+        email: found.email,
+        tipo: found.tipo || "funcionario", // padrão para workers
+        cargo: found.planoCarreira || "Funcionário"
+      });
+
+      resolve({
+        token,
+        nome: found.nome,
+        email: found.email,
+        perfil: found.tipo === "gerente" ? "Gerente" : "Funcionário",
+        id: found.id
+      });
+    }, 600);
+  });
+}
+
+
+// ======================================================
+//        INICIAR USUÁRIOS PADRÃO (somente gerente)
+// ======================================================
+(function initDefaultMockUsers() {
+  const stored = storage.getJSON("mock_users") || [];
+
+  const defaults = [
+    {
+      id: "ger1",
+      nome: "Gerente Teste",
+      email: "gerente@avant.com",
+      senha: "123456",
+      tipo: "gerente"
+    }
+  ];
+
+  defaults.forEach((user) => {
+    if (!stored.find((u: any) => u.email === user.email)) {
+      stored.push(user);
+    }
+  });
+
+  storage.setJSON("mock_users", stored);
+})();
+
+
+// ======================================================
+//                TELA DE LOGIN
+// ======================================================
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -33,69 +102,76 @@ export default function LoginScreen() {
 
   const { loginUser } = useUser();
 
-const handleLogin = async () => {
-    if (!email || !senha)
-      return Alert.alert('Atenção', 'Preencha todos os campos.');
+  // ---------------- TOAST ----------------
+  const toastY = useRef(new Animated.Value(-80)).current;
+  const [toastMsg, setToastMsg] = useState('');
 
-    setLoading(true);
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    Animated.timing(toastY, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true
+    }).start(() => {
+      setTimeout(() => {
+        Animated.timing(toastY, {
+          toValue: -80,
+          duration: 300,
+          useNativeDriver: true
+        }).start();
+      }, 1800);
+    });
+  };
+  // -----------------------------------------
 
-    try {
-      const response = await api.post(
-        '/api/v1/Autenticacao/login',
-        { email, senha },
-        { baseURL: AUTH_API_URL }
-      );
 
-      const dados = response.data;
+  const handleLogin = async () => {
+    if (!email || !senha) {
+      showToast('Preencha todos os campos.');
+      return;
+    }
 
-      loginUser({
-        nome: dados.nome,
-        email: dados.email,
-        cargo: dados.perfil || 'Funcionário',
-        token: dados.token
-      });
+    setLoading(true);
 
-      if (dados.perfil === 'Gerente') {
-        router.replace('/manager');
-      } else {
-        router.replace('/selection');
-      }
-    } catch (error: any) {
-      // --- INÍCIO DO TRATAMENTO DE ERROS MELHORADO ---
-      let errorMessage = 'Ocorreu um erro desconhecido.';
-      
-      if (error.response) {
-        // O servidor respondeu com um código de status fora do range 2xx
-        const status = error.response.status;
+    try {
+      const dados: any = await mockLogin(email, senha);
 
-        if (status === 401 || status === 400) {
-          // 401 Unauthorized (Não Autorizado) ou 400 Bad Request
-          errorMessage = 'E-mail ou senha incorretos. Tente novamente.';
-        } else if (status === 500) {
-          // 500 Internal Server Error
-          errorMessage = 'Erro interno do servidor. Tente novamente mais tarde.';
-        } else {
-          // Outros erros de status, como 403, 404, etc.
-          errorMessage = `Erro na requisição (Status ${status}).`;
-        }
-      } else if (error.request) {
-        // A requisição foi feita, mas não houve resposta (ex: servidor offline)
-        errorMessage = 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente mais tarde.';
-      }
-      
-      console.error("Detalhes do erro:", error);
-      Alert.alert('Falha no Login', errorMessage);
-      // --- FIM DO TRATAMENTO DE ERROS MELHORADO ---
-    } finally {
-      setLoading(false);
-    }
-  };
+      loginUser({
+        nome: dados.nome,
+        email: dados.email,
+        cargo: dados.perfil,
+        token: dados.token,
+        id: dados.id
+      });
+
+      showToast('Login realizado!');
+
+      setTimeout(() => {
+        if (dados.perfil === 'Gerente') {
+          router.replace('/manager');
+        } else {
+          router.replace('/selection');
+        }
+      }, 1500);
+
+    } catch (err: any) {
+      showToast("E-mail ou senha incorretos.");
+    }
+
+    setLoading(false);
+  };
+
 
   return (
     <LinearGradient
       colors={['#060013', '#120424', '#3B0B65']}
       style={styles.container}
     >
+      {/* TOAST */}
+      <Animated.View style={[styles.toast, { transform: [{ translateY: toastY }] }]}>
+        <Text style={styles.toastText}>{toastMsg}</Text>
+      </Animated.View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -114,7 +190,7 @@ const handleLogin = async () => {
             />
           </View>
 
-          {/* TEXTO SUPERIOR */}
+          {/* TEXTO */}
           <Text style={styles.accessText}>
             DIGITE SEU E-MAIL CORPORATIVO E SENHA{'\n'}
             PARA PREPARARMOS SUA JORNADA.
@@ -122,7 +198,6 @@ const handleLogin = async () => {
 
           {/* INPUTS */}
           <View style={styles.formArea}>
-            {/* EMAIL */}
             <BlurView intensity={45} tint="dark" style={styles.inputGlass}>
               <Ionicons name="mail-outline" size={18} color="#C9C9DA" />
               <TextInput
@@ -136,7 +211,6 @@ const handleLogin = async () => {
               />
             </BlurView>
 
-            {/* SENHA */}
             <BlurView intensity={45} tint="dark" style={styles.inputGlass}>
               <Ionicons name="lock-closed-outline" size={18} color="#C9C9DA" />
               <TextInput
@@ -147,10 +221,7 @@ const handleLogin = async () => {
                 onChangeText={setSenha}
                 secureTextEntry={!showPassword}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={{ paddingLeft: 6 }}
-              >
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={18}
@@ -160,12 +231,9 @@ const handleLogin = async () => {
             </BlurView>
           </View>
 
-          {/* BOTÃO SETA */}
+          {/* BOTÃO */}
           <TouchableOpacity style={styles.circleBtn} onPress={handleLogin}>
-            <LinearGradient
-              colors={['#ffffff90', '#ffffffcc']}
-              style={styles.circleInner}
-            >
+            <LinearGradient colors={['#ffffff90', '#ffffffcc']} style={styles.circleInner}>
               {loading ? (
                 <ActivityIndicator color="#000" />
               ) : (
@@ -174,19 +242,14 @@ const handleLogin = async () => {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* LINHA FINAL - AVANCE / CRIAR CONTA */}
+          {/* RODAPÉ */}
           <View style={styles.bottomRow}>
-            {/* ESQUERDA */}
             <TouchableOpacity onPress={() => router.push('/about')}>
               <Text style={styles.advanceText}>AVANCE</Text>
               <Text style={styles.advanceText}>CONOSCO</Text>
             </TouchableOpacity>
 
-            {/* DIREITA */}
-            <TouchableOpacity
-              onPress={() => router.push('/register')}
-              style={{ alignItems: 'flex-end' }}
-            >
+            <TouchableOpacity onPress={() => router.push('/register')} style={{ alignItems: 'flex-end' }}>
               <Text style={styles.managerLabel}>GESTOR NOVO?</Text>
               <Text style={styles.managerLink}>CRIAR CONTA</Text>
             </TouchableOpacity>
@@ -197,8 +260,28 @@ const handleLogin = async () => {
   );
 }
 
+
+// ======================================================
+//                     STYLES
+// ======================================================
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  toast: {
+    position: 'absolute',
+    top: 40,
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+    zIndex: 9999
+  },
+  toastText: {
+    color: '#fff',
+    fontFamily: 'Lexend-Regular',
+    fontSize: 13,
+    textTransform: 'uppercase'
+  },
 
   scroll: {
     alignItems: 'center',
@@ -283,7 +366,7 @@ const styles = StyleSheet.create({
 
   managerLink: {
     color: '#A855F7',
-    fontFamily: 'Lexend-light',
+    fontFamily: 'Lexend-Light',
     fontSize: 12,
     letterSpacing: 1,
     textTransform: 'uppercase'
